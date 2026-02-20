@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Server Browser</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+#topbar { padding: 5px; background: #2d2d2d; color: white; display:flex; align-items:center; }
+#url { flex:1; padding:5px; margin-right:5px; border-radius:4px; border:none;}
+button { padding:5px 10px; border:none; border-radius:4px; background:#4CAF50; color:white; cursor:pointer;}
+#tabs { background:#f0f0f0; padding:5px; display:flex; overflow-x:auto;}
+.tab { padding:5px 10px; margin-right:5px; background:#ddd; border-radius:4px; cursor:pointer;}
+.tab.active { background:#bbb;}
+#browser { width:100%; height:90vh; border:none;}
+</style>
+</head>
+<body>
+<div id="topbar">
+<input id="url" placeholder="Enter URL or search..."/>
+<button onclick="newTab()">Go</button>
+</div>
+<div id="tabs"></div>
+<iframe id="browser"></iframe>
+
+<script>
+let tabs = {};
+let currentTab = null;
+
+async function newTab() {
+    let input = document.getElementById("url").value;
+    if (!input.startsWith("http")) input = "https://www.google.com/search?q=" + encodeURIComponent(input);
+    
+    const res = await fetch("/new_tab", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({url: input})
+    });
+    const data = await res.json();
+    const tab_id = data.tab_id;
+    tabs[tab_id] = input;
+
+    const tabEl = document.createElement("div");
+    tabEl.className = "tab";
+    tabEl.innerText = input.length>20? input.slice(0,20)+"..." : input;
+    tabEl.id = "tab-" + tab_id;
+    tabEl.onclick = () => loadTab(tab_id);
+    document.getElementById("tabs").appendChild(tabEl);
+
+    loadTab(tab_id);
+}
+
+function setActiveTab(tab_id) {
+    document.querySelectorAll(".tab").forEach(el=>el.classList.remove("active"));
+    document.getElementById("tab-"+tab_id).classList.add("active");
+}
+
+async function loadTab(tab_id) {
+    setActiveTab(tab_id);
+    currentTab = tab_id;
+    const iframe = document.getElementById("browser");
+    iframe.src = "/screenshot/" + tab_id;
+}
+
+async function gotoCurrentTab() {
+    if(!currentTab) return;
+    let input = document.getElementById("url").value;
+    if (!input.startsWith("http")) input = "https://www.google.com/search?q=" + encodeURIComponent(input);
+    await fetch("/goto", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({tab_id: currentTab, url: input})
+    });
+    loadTab(currentTab);
+}
+</script>
+</body>
+</html>
