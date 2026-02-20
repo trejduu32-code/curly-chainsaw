@@ -9,10 +9,13 @@ RUN apt update && apt install -y \
     novnc \
     websockify \
     supervisor \
+    curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 EXPOSE 10000
 
